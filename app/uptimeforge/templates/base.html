@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Overview{% endblock %} · UptimeForge</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <script src="{{ url_for('static', path='app.js') }}" defer>
+    </script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <span class="brand-icon">↗</span> UptimeForge<span class="brand-dot">.</span>
+      </a>
+      <p class="nav-label">WORKSPACE</p>
+      <nav aria-label="Main navigation">
+        <a class="nav-item active" href="/">◉ <span>Overview</span>
+        </a>
+        <a class="nav-item" href="/#monitors">▤ <span>Monitors</span>
+        </a>
+        <a class="nav-item" href="/docs">⌘ <span>API documentation</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="avatar">UF</span>
+        <div>UptimeForge workspace<small>Authenticated administrator</small>
+        </div>
+      </div>
+    </aside>
+    <main>
+      <div class="topbar">
+        <span>Workspace <span class="muted">/</span> {% block breadcrumb %}Overview{% endblock %}</span>
+        <span class="live">
+          <i>
+          </i> Live application data</span>
+      </div>
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden>
+      </div>
+      {% block content %}{% endblock %}
+      <footer>Built for peace of mind. <span>All monitoring timestamps are UTC.</span>
+      </footer>
+    </main>
+    <dialog id="monitor-dialog" aria-labelledby="dialog-title">
+      <form id="monitor-form">
+        <div class="dialog-header">
+          <h2 id="dialog-title">Add a monitor</h2>
+          <button type="button" class="icon-button" data-close aria-label="Close dialog">×</button>
+        </div>
+        <p class="muted">Keep an eye on the services that matter.</p>
+        <input type="hidden" name="id">
+        <label for="monitor-name">Monitor name</label>
+        <input id="monitor-name" name="name" maxlength="120" required placeholder="Production API">
+        <label for="monitor-url">Target URL</label>
+        <input id="monitor-url" name="url" type="url" maxlength="2048" required placeholder="https://api.example.com/health">
+        <small>Public HTTP or HTTPS targets on ports 80 and 443.</small>
+        <label for="monitor-interval">Check interval (seconds)</label>
+        <input id="monitor-interval" name="interval_seconds" type="number" min="30" max="86400" value="60" required>
+        <p id="form-error" class="form-error" role="alert" hidden>
+        </p>
+        <div class="dialog-actions">
+          <button type="button" class="button secondary" data-close>Cancel</button>
+          <button class="button primary" type="submit">Save monitor</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>
