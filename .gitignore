@@ -16,3 +16,18 @@ crash.*.log
 
 # macOS
 .DS_Store
+
+# Application
+!.env.example
+**/.venv/
+**/__pycache__/
+*.py[cod]
+**/.pytest_cache/
+**/.ruff_cache/
+*.egg-info/
+**/build/
+**/dist/
+.coverage
+htmlcov/
+*.db
+*.sqlite*
