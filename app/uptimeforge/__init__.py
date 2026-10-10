@@ -1,0 +1,1 @@
+"""UptimeForge application."""

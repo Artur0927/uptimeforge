@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">YOUR SERVICES, AT A GLANCE</p>
+    <h1>Overview</h1>
+    <p class="muted">A little certainty in a world of moving parts.</p>
+  </div>
+  <button class="button primary" data-add>＋ Add monitor</button>
+</header>
+<section class="stats" aria-label="Monitoring summary">
+  <article class="stat">
+    <span>Total monitors <b>▤</b>
+    </span>
+    <strong>{{ total }}</strong>
+    <small>Services in your workspace</small>
+  </article>
+  <article class="stat">
+    <span>Online <b class="green">↗</b>
+    </span>
+    <strong>{{ counts.get('UP', 0) }} <i class="green dot">
+      </i>
+    </strong>
+    <small>Responding successfully</small>
+  </article>
+  <article class="stat">
+    <span>Offline <b class="red">↘</b>
+    </span>
+    <strong>{{ counts.get('DOWN', 0) }} <i class="red dot">
+      </i>
+    </strong>
+    <small>{{ counts.get('PENDING', 0) }} awaiting first check</small>
+  </article>
+  <article class="stat">
+    <span>Avg. response time <b class="purple">◷</b>
+    </span>
+    <strong>{{ '%.0f'|format(average) if average is not none else '—' }} <em>ms</em>
+    </strong>
+    <small>Across latest monitor checks</small>
+  </article>
+</section>
+<section class="panel chart-panel">
+  <div class="panel-header">
+    <div>
+      <h2>Response time</h2>
+      <p class="muted">Latest 50 checks across your services</p>
+    </div>
+    <span class="chart-key">● Response time · ms</span>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="response-chart" aria-label="Response times for recent checks" role="img">
+    </canvas>
+    <p id="chart-empty" class="chart-empty" hidden>No checks yet. Run your first check to see response times.</p>
+  </div>
+  <script id="chart-data" type="application/json">{{ chart|tojson }}</script>
+</section>
+<section id="monitors" class="panel">
+  <div class="panel-header">
+    <div>
+      <h2>Your monitors <span class="count">{{ total }}</span>
+      </h2>
+      <p class="muted">Availability starts with visibility.</p>
+    </div>
+    <label class="search-label">
+      <span class="sr-only">Filter monitors on this page</span>
+      <input id="search" type="search" placeholder="Search this page…">
+    </label>
+  </div>
+  {% if monitors %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Monitor</th>
+          <th>Status</th>
+          <th>Response time</th>
+          <th>Last checked (UTC)</th>
+          <th>
+            <span class="sr-only">Actions</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for monitor in monitors %}
+        <tr data-monitor-row data-name="{{ monitor.name|lower }}">
+          <td>
+            <a class="monitor-name" href="/monitors/{{ monitor.id }}">
+              <span class="site-icon">↗</span>
+              <span>{{ monitor.name }}<small>{{ monitor.url }}</small>
+              </span>
+            </a>
+          </td>
+          <td>
+            <span class="badge {{ monitor.status|lower }}">● {{ monitor.status }}</span>
+          </td>
+          <td class="mono">{{ '%.0f ms'|format(monitor.response_time_ms) if monitor.response_time_ms is not none else '—' }}</td>
+          <td class="muted">{{ monitor.last_checked_at.strftime('%d %b, %H:%M:%S') if monitor.last_checked_at else 'Awaiting first check' }}</td>
+          <td>
+            <button class="button compact secondary" data-check="{{ monitor.id }}">Check now</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p id="search-empty" class="empty-small" hidden>No monitors match your search.</p>
+  <div class="pagination">
+    <span>Page {{ page }} · up to 50 monitors per page</span>
+    <div>{% if page > 1 %}<a href="/?page={{ page-1 }}#monitors">← Previous</a>{% endif %}{% if has_next %}<a href="/?page={{ page+1 }}#monitors">Next →</a>{% endif %}</div>
+  </div>
+  {% else %}
+  <div class="empty">
+    <span class="empty-icon">◎</span>
+    <h3>Your uptime story starts here</h3>
+    <p>Add a website or API, then let UptimeForge keep watch.</p>
+    <button class="button primary" data-add>＋ Add your first monitor</button>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

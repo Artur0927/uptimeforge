@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ monitor.name }}{% endblock %}
+{% block breadcrumb %}<a href="/">Monitors</a> / {{ monitor.name }}{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <a class="back-link" href="/">← All monitors</a>
+    <h1>{{ monitor.name }}</h1>
+    <p class="muted target-url">{{ monitor.url }}</p>
+  </div>
+  <div class="actions">
+    <button class="button secondary" data-edit="{{ monitor.id }}">Edit monitor</button>
+    <button class="button primary" data-check="{{ monitor.id }}">↻ Check now</button>
+  </div>
+</header>
+<section class="stats details-stats">
+  <article class="stat">
+    <span>Current status</span>
+    <strong class="{{ 'green' if monitor.status == 'UP' else 'red' if monitor.status == 'DOWN' else 'muted' }}">{{ monitor.status }}</strong>
+    <small>HTTP {{ monitor.status_code or '—' }}</small>
+  </article>
+  <article class="stat">
+    <span>Response time</span>
+    <strong>{{ '%.0f'|format(monitor.response_time_ms) if monitor.response_time_ms is not none else '—' }} <em>ms</em>
+    </strong>
+    <small>Latest completed check</small>
+  </article>
+  <article class="stat">
+    <span>Check interval</span>
+    <strong>{{ monitor.interval_seconds }} <em>sec</em>
+    </strong>
+    <small>Handled by the independent worker</small>
+  </article>
+</section>
+<section class="panel chart-panel">
+  <div class="panel-header">
+    <div>
+      <h2>Response-time history</h2>
+      <p class="muted">Latest 100 checks · {{ monitor.last_checked_at.strftime('%d %b %Y, %H:%M:%S UTC') if monitor.last_checked_at else 'No checks completed' }}</p>
+    </div>
+    <span class="chart-key">● Response time · ms</span>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="response-chart" role="img" aria-label="Response-time history; values are in the history table below">
+    </canvas>
+    <p id="chart-empty" class="chart-empty" hidden>No checks yet. Select Check now to get started.</p>
+  </div>
+  <script id="chart-data" type="application/json">{{ chart|tojson }}</script>
+</section>
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <h2>Check history</h2>
+      <p class="muted">Every result, with the details that matter.</p>
+    </div>
+    <a href="/api/monitors/{{ monitor.id }}/history">View JSON ↗</a>
+  </div>
+  {% if history %}<div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Checked at (UTC)</th>
+          <th>Status</th>
+          <th>HTTP code</th>
+          <th>Response time</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>{% for result in history %}<tr>
+          <td class="mono">{{ result.checked_at.strftime('%d %b %Y, %H:%M:%S') }}</td>
+          <td>
+            <span class="badge {{ result.status|lower }}">● {{ result.status }}</span>
+          </td>
+          <td>{{ result.status_code or '—' }}</td>
+          <td class="mono">{{ '%.2f'|format(result.response_time_ms) }} ms</td>
+          <td class="muted">{{ result.error or 'Successful response' }}{% if result.target_url != monitor.url %}<small class="history-target">Previous target: {{ result.target_url }}</small>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+    </table>
+  </div>{% else %}<div class="empty">
+    <h3>Ready for the first signal</h3>
+    <p>Start the worker or run a manual check to build your history.</p>
+  </div>{% endif %}</section>
+<div class="danger-zone">
+  <span>Deleting this monitor also removes its check history.</span>
+  <button class="button danger" data-delete="{{ monitor.id }}">Delete monitor</button>
+</div>
+{% endblock %}
