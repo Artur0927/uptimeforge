@@ -50,12 +50,16 @@ jobs:
       - name: install dependencies
         working-directory: ./app
         run: python -m pip install -e  '.[dev]'
+     
+      
       - name: Run Alembic migrations
         working-directory: ./app
-        env: 
-           DATABASE_URL: postgresql+psycopg://uptimeforge:ci_test_password_2026@127.0.0.1:5432/uptimeforge_test
+        env:
+          DATABASE_URL: postgresql+psycopg://uptimeforge:ci_test_password_2026@127.0.0.1:5432/uptimeforge_test
+          AUTH_USERNAME: ci-admin
+          AUTH_PASSWORD: ci_only_password_12345
         run: alembic upgrade head
-          
+
       - name: Run ruff
         working-directory: ./app
         run: ruff check .
