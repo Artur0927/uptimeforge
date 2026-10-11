@@ -4,7 +4,7 @@ name: UptimeForge CI
 on:
   push:
     branches:
-      - feat/devops-foundation
+      - main
 
   pull_request:
     branches:
