@@ -16,7 +16,25 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
 
+        env:
+          POSTGRES_USER: uptimeforge
+          POSTGRES_PASSWORD: ci_test_password_2026
+          POSTGRES_DB: uptimeforge_test
+
+        ports:
+          - 5432:5432
+
+        options: >-
+          --health-cmd "pg_isready -U uptimeforge -d uptimeforge_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
