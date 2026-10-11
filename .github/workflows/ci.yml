@@ -64,9 +64,11 @@ jobs:
         working-directory: ./app
         run: ruff check .
 
-      - name: Run pytest
-        working-directory: ./app
-        run: pytest -q
+      -  name: Run pytest
+         working-directory: ./app
+         env:
+           UPTIMEFORGE_TEST_DATABASE_URL: postgresql+psycopg://uptimeforge:ci_test_password_2026@127.0.0.1:5432/uptimeforge_test
+         run: pytest -q -rs
 
       - name: Build Docker image
         working-directory: ./app
