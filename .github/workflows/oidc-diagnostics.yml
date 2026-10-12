@@ -1,0 +1,122 @@
+name: GitHub OIDC diagnostics
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  inspect-claims:
+    if: github.ref == 'refs/heads/main' && github.repository == 'Artur0927/uptimeforge'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      id-token: write
+      contents: read
+    # No environment: its context would change the expected branch subject.
+    steps:
+      - name: Inspect expected OIDC claims without AWS authentication
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64
+          import json
+          import os
+          import re
+          import sys
+          import urllib.parse
+          import urllib.request
+
+          AUDIENCE = "sts.amazonaws.com"
+          SUBJECT = "repo:Artur0927@99685228/uptimeforge@1412546510:ref:refs/heads/main"
+          MAX_BYTES = 65536
+
+          class NoRedirects(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  raise ValueError("Redirects are not permitted")
+
+          def request_claims():
+              parts = urllib.parse.urlsplit(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"])
+              host = parts.hostname or ""
+              if (
+                  parts.scheme != "https"
+                  or not host.endswith(".actions.githubusercontent.com")
+                  or parts.port not in (None, 443)
+                  or parts.username is not None
+                  or parts.password is not None
+                  or parts.fragment
+              ):
+                  raise ValueError("Unexpected token endpoint")
+              query = [
+                  (key, value)
+                  for key, value in urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+                  if key != "audience"
+              ]
+              query.append(("audience", AUDIENCE))
+              url = urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
+              request = urllib.request.Request(url, headers={
+                  "Authorization": "Bearer " + os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"],
+                  "Accept": "application/json",
+              })
+              # Disable proxy inheritance and redirects to protect the bearer header.
+              opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirects())
+              with opener.open(request, timeout=20) as response:
+                  body = response.read(MAX_BYTES + 1)
+              if len(body) > MAX_BYTES:
+                  raise ValueError("Oversized response")
+              token = json.loads(body)["value"]
+              if not isinstance(token, str) or len(token) > MAX_BYTES:
+                  raise ValueError("Invalid token response")
+              segments = token.split(".")
+              if len(segments) != 3 or not all(segments):
+                  raise ValueError("Invalid JWT structure")
+              payload = segments[1]
+              if not re.fullmatch(r"[A-Za-z0-9_-]+", payload):
+                  raise ValueError("Invalid payload encoding")
+              claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+              if not isinstance(claims, dict):
+                  raise ValueError("Invalid claim payload")
+              return claims
+
+          if (
+              os.environ.get("GITHUB_REF") != "refs/heads/main"
+              or os.environ.get("GITHUB_REPOSITORY") != "Artur0927/uptimeforge"
+              or os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch"
+          ):
+              print("FAIL execution_context (requires manual dispatch on the intended repository/main)")
+              sys.exit(1)
+          print("PASS execution_context")
+          print("Diagnostics only: JWT signatures are not independently validated.")
+
+          try:
+              claims = request_claims()
+          except Exception:
+              # Never print exception text, response bodies, URLs, headers or tokens.
+              print("FAIL token_request_or_decode (details suppressed to protect credentials)")
+              sys.exit(1)
+          print("PASS token_request_or_decode")
+
+          checks = {
+              "iss": "https://token.actions.githubusercontent.com",
+              "aud": AUDIENCE,
+              "sub": SUBJECT,
+              "ref": "refs/heads/main",
+          }
+          optional = {
+              "repository": "Artur0927/uptimeforge",
+              "repository_owner": "Artur0927",
+              "repository_id": "1412546510",
+              "repository_owner_id": "99685228",
+          }
+          failed = False
+          for key, expected in {**checks, **optional}.items():
+              if key in optional and key not in claims:
+                  print(f"SKIP {key} (optional claim absent)")
+                  continue
+              passed = isinstance(claims.get(key), str) and claims[key] == expected
+              # Report fixed labels only; never echo token-controlled claim values.
+              print(f"{'PASS' if passed else 'FAIL'} {key}")
+              failed = failed or not passed
+          print("FAIL claim_checks" if failed else "PASS claim_checks")
+          sys.exit(1 if failed else 0)
+          PY
