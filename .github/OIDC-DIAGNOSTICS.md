@@ -1,6 +1,6 @@
 # DEVOPS-015: GitHub OIDC diagnostics handoff
 
-Prepared on `feat/aws-networking`. The separate
+Prepared on `ci/oidc-diagnostics`, reconciled with current `main`. The separate
 [`oidc-diagnostics.yml`](workflows/oidc-diagnostics.yml) workflow requests a GitHub
 OIDC token and checks its claims without authenticating to AWS. Existing CI tests,
 Ruff, PostgreSQL migrations and Docker build are unchanged.
@@ -8,7 +8,8 @@ Ruff, PostgreSQL migrations and Docker build are unchanged.
 ## Run after merging into main
 
 1. Review the workflow and merge it into the default branch `main` through the
-   normal review process. No commit, push, merge or remote run was performed here.
+   normal review process. The feature branch was committed and pushed for review;
+   this diagnostics workflow has not been dispatched and the PR has not been merged.
 2. Open `Artur0927/uptimeforge` on GitHub, select **Actions**, then **GitHub OIDC
    diagnostics** in the workflow list.
 3. Select **Run workflow**, choose branch **main**, then **Run workflow**. The
