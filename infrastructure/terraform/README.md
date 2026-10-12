@@ -214,3 +214,12 @@ was run. State and lock file checksums remain unchanged.
 `.gitignore` excludes state, .terraform/, private .tfvars, saved .tfplan files and
 secrets. Keep non-secret terraform.tfvars.example and the lock file in Git; keep
 plan JSON/logs outside the repository. Existing uncommitted work is preserved.
+
+## Cross-platform provider verification
+
+GitHub's Linux runner requires its own verified provider package hash. The lock
+file now records linux_amd64 alongside the existing macOS hash, fetched from the
+official registry and signed by HashiCorp. AWS stays at 6.68.0; this is not a
+provider upgrade or state migration. Regenerate/review platform hashes with
+`terraform providers lock -platform=darwin_arm64 -platform=linux_amd64` when
+maintaining the pinned provider. CI continues to use lockfile=readonly.
