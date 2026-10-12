@@ -8,7 +8,7 @@ x-application: &application
   tmpfs:
     - /tmp:size=32m,mode=1777
   cap_drop: [ALL]
-  security_opt: [no-new-privileges:true]
+  security_opt: ["no-new-privileges:true"]
   environment: &application-environment
     DATABASE_URL: ${DATABASE_URL:?Set the PostgreSQL URL using hostname db}
     AUTH_USERNAME: ${AUTH_USERNAME:?Set the administrator username}
@@ -32,9 +32,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:?Set the existing database name}
-      POSTGRES_USER: ${POSTGRES_USER:?Set the existing database user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set the existing database password}
+      POSTGRES_DB: ${POSTGRES_DB:?Set the approved database name}
+      POSTGRES_USER: ${POSTGRES_USER:?Set the approved database user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set the approved database password}
     volumes:
       - pgdata:/var/lib/postgresql/data
     # No published database port. Retain PostgreSQL's required filesystem access.
@@ -96,4 +96,4 @@ volumes:
   pgdata:
     # Never silently create a new empty database volume during migration/update.
     external: true
-    name: ${POSTGRES_VOLUME_NAME:?Set the actual existing PostgreSQL volume name}
+    name: ${POSTGRES_VOLUME_NAME:?Set the verified existing or explicitly provisioned PostgreSQL volume name}

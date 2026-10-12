@@ -47,5 +47,33 @@ Remote validation before the documentation handoff:
 - [Production application CI](https://github.com/Artur0927/uptimeforge/actions/runs/38310633090) passed.
 - [Terraform CI](https://github.com/Artur0927/uptimeforge/actions/runs/38310855686) passed after
   adding the HashiCorp-signed Linux package hash, retaining AWS provider 6.68.0.
-- Draft PRs #5, #6 and #7 target feat/aws-networking to avoid mixing its prerequisite
-  network/ECR commits into each review. No PR was merged.
+- Initial draft PRs targeted feat/aws-networking. The owner subsequently merged
+  networking/ECR (#3) and the Terraform refactor (#4). Integration review merges
+  current main into each feature branch without rewriting history and retargets
+  #5/#6/#7 to main. No PR was merged during this integration review.
+
+## Final integration review
+
+- Main 52338dd already contains networking/ECR via #3 and the Terraform root
+  refactor 1c6201e via #4. Each feature branch merged main without rebasing or
+  force-pushing; existing history and the dirty owner checkout were preserved.
+- Repeated validation: Ruff, 72 image tests against disposable PostgreSQL,
+  non-root/read-only API database health, Worker startup, seven offline Terraform
+  plan tests, nine synthetic OIDC groups, Compose contract and five rejected
+  unsafe variants all passed. Operations Bash examples passed syntax checks only.
+- A second disposable PostgreSQL 16 restored a custom-format dump from a freshly
+  initialized/migrated database; Alembic 0001 and a synthetic monitor survived.
+  Both databases used tmpfs; no persistent volumes were created or removed.
+- Compose and CI YAML parse. Quoting no-new-privileges:true also makes the Compose
+  file compatible with the local older Ruby YAML parser. The first Terraform
+  provider invocation was blocked by sandbox plugin-socket restrictions; rerunning
+  the same offline checks with local socket access passed. No AWS API was called.
+- Fresh initialization now requires explicit volume-creation/migration approval;
+  upgrades select the actual existing volume and migrations use --no-deps.
+- Manual publication requires an approved temporary human/SSO session. The existing
+  AssumeRole profile is not evidence that its source avoids static IAM-user keys.
+- Release remains blocked on host-only IAM/profile approval independent of OIDC,
+  approved temporary publisher access, host/private proxy/TLS verification,
+  production backup restore evidence and actual AWS billing-plan confirmation.
+  Organizations membership conflicts with a strict Free account plan requirement
+  under current AWS documentation; no billing/organization change was made.
