@@ -29,7 +29,7 @@ run "ecr_only_by_default" {
   command = plan
 
   assert {
-    condition     = length(module.iam) == 0
+    condition     = length(module.iam) == 0 && length(module.docker_host_iam) == 0
     error_message = "Default composition must instantiate no IAM module or OIDC lookups."
   }
   assert {
@@ -79,4 +79,56 @@ run "iam_opt_in_preserves_compute" {
     condition     = output.ecr_repository_name == "uptimeforge-api"
     error_message = "Enabling IAM must preserve the same ECR module and repository."
   }
+}
+
+run "host_iam_only_preserves_all_profiles" {
+  command = plan
+  variables {
+    enable_docker_host_iam = true
+    enable_cicd_iam        = false
+  }
+  override_resource {
+    target = module.ecr.aws_ecr_repository.application
+    values = { arn = "arn:aws:ecr:eu-north-1:152680102458:repository/uptimeforge-api" }
+  }
+  assert {
+    condition     = length(module.iam) == 0 && length(module.docker_host_iam) == 1
+    error_message = "Host-only IAM must never enable GitHub/OIDC."
+  }
+  assert {
+    condition = (
+      aws_instance.docker_host.iam_instance_profile == aws_iam_instance_profile.ssm.name &&
+      aws_instance.nat.iam_instance_profile == aws_iam_instance_profile.ssm.name &&
+      aws_instance.nginx.iam_instance_profile == aws_iam_instance_profile.ssm.name
+    )
+    error_message = "Role creation alone must not change any existing EC2 profile."
+  }
+}
+
+run "approved_host_profile_only" {
+  command = plan
+  variables {
+    enable_docker_host_iam        = true
+    associate_docker_host_profile = true
+    enable_cicd_iam               = false
+  }
+  override_resource {
+    target = module.ecr.aws_ecr_repository.application
+    values = { arn = "arn:aws:ecr:eu-north-1:152680102458:repository/uptimeforge-api" }
+  }
+  assert {
+    condition = (
+      length(module.iam) == 0 &&
+      aws_instance.docker_host.iam_instance_profile == module.docker_host_iam[0].docker_host_instance_profile_name &&
+      aws_instance.nat.iam_instance_profile == aws_iam_instance_profile.ssm.name &&
+      aws_instance.nginx.iam_instance_profile == aws_iam_instance_profile.ssm.name
+    )
+    error_message = "Explicit migration may select only Docker Host's dedicated profile."
+  }
+}
+
+run "reject_profile_without_role" {
+  command = plan
+  variables { associate_docker_host_profile = true }
+  expect_failures = [aws_instance.docker_host]
 }

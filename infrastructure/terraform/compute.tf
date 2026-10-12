@@ -94,7 +94,7 @@ resource "aws_instance" "docker_host" {
   subnet_id                   = aws_subnet.private_a.id
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.docker_host.id]
-  iam_instance_profile        = aws_iam_instance_profile.ssm.name
+  iam_instance_profile        = var.associate_docker_host_profile && var.enable_docker_host_iam ? module.docker_host_iam[0].docker_host_instance_profile_name : aws_iam_instance_profile.ssm.name
 
   metadata_options {
     http_endpoint = "enabled"
@@ -113,6 +113,13 @@ resource "aws_instance" "docker_host" {
 
   tags = {
     Name = "uptimeforge-docker-host"
+  }
+
+  lifecycle {
+    precondition {
+      condition     = !var.associate_docker_host_profile || var.enable_docker_host_iam
+      error_message = "Profile migration requires the independently enabled Docker Host IAM module."
+    }
   }
 
   # Can initiate SSM only when outbound HTTPS via NAT is available.

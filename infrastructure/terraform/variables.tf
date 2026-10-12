@@ -49,7 +49,7 @@ variable "ecr_release_image_count" {
 }
 
 variable "enable_cicd_iam" {
-  description = "Enable the later CI/CD IAM stage. False skips all module IAM resources and OIDC data sources; EC2 profiles remain unchanged."
+  description = "Enable only GitHub publisher IAM and OIDC. Independent Docker Host IAM/profile migration uses separate flags."
   type        = bool
   default     = false
 }
@@ -88,4 +88,16 @@ variable "docker_instance_type" {
   description = "Private host for Docker Compose; 2 GiB RAM may be tight for the full app."
   type        = string
   default     = "t3.small"
+}
+
+variable "enable_docker_host_iam" {
+  description = "Create only the dedicated SSM/ECR pull role and profile; does not associate it to EC2."
+  type        = bool
+  default     = false
+}
+
+variable "associate_docker_host_profile" {
+  description = "Separately approved in-place Docker Host profile migration; requires enable_docker_host_iam=true."
+  type        = bool
+  default     = false
 }

@@ -4,7 +4,7 @@ variable "name_prefix" {
 }
 
 variable "repository_arn" {
-  description = "The only ECR repository these roles may push to or pull from."
+  description = "The only ECR repository the GitHub publisher may push to."
   type        = string
 }
 

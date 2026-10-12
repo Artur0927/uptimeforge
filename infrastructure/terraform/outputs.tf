@@ -67,10 +67,10 @@ output "github_oidc_subject" {
 
 output "docker_host_role_arn" {
   description = "Dedicated Docker Host SSM and ECR pull role."
-  value       = var.enable_cicd_iam ? module.iam[0].docker_host_role_arn : null
+  value       = var.enable_docker_host_iam ? module.docker_host_iam[0].docker_host_role_arn : null
 }
 
 output "docker_host_instance_profile_name" {
   description = "Prepared dedicated Docker Host profile; associating it with EC2 is a separate reviewed change."
-  value       = var.enable_cicd_iam ? module.iam[0].docker_host_instance_profile_name : null
+  value       = var.enable_docker_host_iam ? module.docker_host_iam[0].docker_host_instance_profile_name : null
 }

@@ -87,19 +87,6 @@ run "reuse_provider_least_privilege" {
     )
     error_message = "Publishing permissions must be scoped to one repository, with only authentication on *."
   }
-
-  assert {
-    condition = (
-      jsondecode(aws_iam_role_policy.docker_host_ecr_pull.policy).Statement[0].Action == "ecr:GetAuthorizationToken" &&
-      jsondecode(aws_iam_role_policy.docker_host_ecr_pull.policy).Statement[0].Resource == "*" &&
-      jsondecode(aws_iam_role_policy.docker_host_ecr_pull.policy).Statement[1].Resource == var.repository_arn &&
-      toset(jsondecode(aws_iam_role_policy.docker_host_ecr_pull.policy).Statement[1].Action) == toset([
-        "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"
-      ]) &&
-      aws_iam_role_policy_attachment.docker_host_ssm.policy_arn == "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-    )
-    error_message = "Docker Host must retain SSM and may only pull from the application repository."
-  }
 }
 
 run "reject_provider_without_sts_audience" {
@@ -177,4 +164,46 @@ run "reject_wildcard_subject" {
     values = { account_id = "123456789012" }
   }
   expect_failures = [var.github_oidc_subject]
+}
+
+run "docker_host_pull_without_oidc" {
+  command = plan
+  module { source = "./modules/docker-host-iam" }
+  providers = { aws = aws.offline }
+
+  variables {
+    name_prefix    = "uptimeforge-dev"
+    repository_arn = "arn:aws:ecr:eu-north-1:152680102458:repository/uptimeforge-api"
+  }
+
+  assert {
+    condition = (
+      jsondecode(aws_iam_role_policy.docker_host_ecr_pull.policy).Statement[0].Action == "ecr:GetAuthorizationToken" &&
+      jsondecode(aws_iam_role_policy.docker_host_ecr_pull.policy).Statement[0].Resource == "*" &&
+      jsondecode(aws_iam_role_policy.docker_host_ecr_pull.policy).Statement[1].Resource == var.repository_arn &&
+      toset(jsondecode(aws_iam_role_policy.docker_host_ecr_pull.policy).Statement[1].Action) == toset([
+        "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"
+      ]) &&
+      aws_iam_role_policy_attachment.docker_host_ssm.policy_arn == "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    )
+    error_message = "Docker Host must retain SSM and may only pull from the application repository."
+  }
+  assert {
+    condition = (
+      jsondecode(aws_iam_role.docker_host.assume_role_policy).Statement[0].Principal.Service == "ec2.amazonaws.com" &&
+      jsondecode(aws_iam_role.docker_host.assume_role_policy).Statement[0].Action == "sts:AssumeRole"
+    )
+    error_message = "The host role must trust only EC2, independently of GitHub OIDC."
+  }
+}
+
+run "reject_other_pull_repository" {
+  command = plan
+  module { source = "./modules/docker-host-iam" }
+  providers = { aws = aws.offline }
+  variables {
+    name_prefix    = "uptimeforge-dev"
+    repository_arn = "arn:aws:ecr:eu-north-1:152680102458:repository/another-repo"
+  }
+  expect_failures = [var.repository_arn]
 }
