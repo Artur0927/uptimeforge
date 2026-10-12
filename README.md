@@ -249,3 +249,5 @@ and arrange logs, retention and operational health checks. Containerization, AWS
 Terraform, Nginx, CI/CD, deployment and monitoring configuration are deliberately
 outside application development. No application changes are needed in the existing
 `infrastructure/` directory.
+
+Contribution hygiene is documented in [CONTRIBUTING.md](CONTRIBUTING.md).
