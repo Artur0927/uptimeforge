@@ -239,6 +239,9 @@ OIDC, Docker Host ECR pull access and production activation remain approval gate
 
 ## DevOps handoff
 
+AWS infrastructure and ECR/IAM review instructions are in
+[`infrastructure/terraform/README.md`](infrastructure/terraform/README.md).
+
 The DevOps engineer owns PostgreSQL provisioning/users, secret injection, database
 backups, TLS and restricted ingress, egress controls, process supervision and running
 the web and worker separately. They must run migrations explicitly before startup
