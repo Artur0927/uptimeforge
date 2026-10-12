@@ -2,7 +2,7 @@ name: Terraform validation
 
 on:
   pull_request:
-    branches: [main, feat/aws-networking]
+    branches: [main]
     paths: [infrastructure/terraform/**, .github/workflows/terraform.yml]
   push:
     branches: [feat/terraform-iam-readiness]
