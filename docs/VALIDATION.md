@@ -41,3 +41,11 @@ production backup restoration were not verified by local tests.
 
 Before deployment, approve and review those gates in OPERATIONS.md. Keep
 enable_cicd_iam=false until the separately reviewed IAM stage is authorized.
+
+Remote validation before the documentation handoff:
+
+- [Production application CI](https://github.com/Artur0927/uptimeforge/actions/runs/38310633090) passed.
+- [Terraform CI](https://github.com/Artur0927/uptimeforge/actions/runs/38310855686) passed after
+  adding the HashiCorp-signed Linux package hash, retaining AWS provider 6.68.0.
+- Draft PRs #5, #6 and #7 target feat/aws-networking to avoid mixing its prerequisite
+  network/ECR commits into each review. No PR was merged.

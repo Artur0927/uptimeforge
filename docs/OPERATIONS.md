@@ -88,6 +88,35 @@ The API needs a long random AUTH_PASSWORD; example REPLACE_ values are rejected.
 Keep backups and release records outside the 20 GiB host disk where practical.
 No secret file is committed or bundled into the application image.
 
+## Separately approved manual image publication
+
+The existing uptimeforge profile uses temporary AssumeRole credentials. Before
+publishing, confirm account 152680102458, review the operator's approved ECR push
+permissions, and obtain approval for the registry write. These commands were not
+executed during preparation. Run from a reviewed, clean Git checkout; do not label
+uncommitted application changes with a commit SHA.
+
+```bash
+set -euo pipefail
+aws sts get-caller-identity --profile uptimeforge --region eu-north-1
+test -z "$(git status --porcelain)"
+release_sha=$(git rev-parse HEAD)
+release_repository=152680102458.dkr.ecr.eu-north-1.amazonaws.com/uptimeforge-api
+docker build --platform linux/amd64 -f app/Dockerfile \
+  -t "${release_repository}:sha-${release_sha}" app
+aws ecr get-login-password --profile uptimeforge --region eu-north-1 | docker login \
+  --username AWS --password-stdin 152680102458.dkr.ecr.eu-north-1.amazonaws.com
+# Registry write: only after explicit publication approval.
+docker push "${release_repository}:sha-${release_sha}"
+docker logout 152680102458.dkr.ecr.eu-north-1.amazonaws.com
+```
+
+For a SHA that already exists, verify its recorded digest and reuse it; do not
+overwrite immutable tags. Record the published digest and use the same image in
+API/Worker. This operator procedure does not provide the Docker Host with pull
+permissions, bypass the SCP or activate GitHub AWS authentication. The future CI
+publisher must use the reviewed repository-scoped OIDC role instead.
+
 ## Approved manual deployment procedure
 
 Run host commands from a private, operator-owned checkout/release directory on
