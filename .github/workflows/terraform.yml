@@ -1,0 +1,39 @@
+name: Terraform validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [infrastructure/terraform/**, .github/workflows/terraform.yml]
+  push:
+    branches: [feat/terraform-iam-readiness]
+    paths: [infrastructure/terraform/**, .github/workflows/terraform.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infrastructure/terraform
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: 1.16.1
+          terraform_wrapper: false
+      - name: Check formatting
+        run: terraform fmt -recursive -check
+      - name: Initialize without a backend or provider upgrade
+        run: terraform init -backend=false -input=false -lockfile=readonly
+      - name: Validate configuration
+        run: terraform validate
+      - name: Run offline plan-only contracts
+        # Tests use mock providers or synthetic credentials and overridden data.
+        run: terraform test -no-color
