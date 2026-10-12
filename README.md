@@ -231,6 +231,12 @@ Remaining limits:
 - Dashboard data updates on page reload. API docs use FastAPI's default external
   Swagger/ReDoc assets; the dashboard uses only bundled assets.
 
+## Container operations
+
+Reviewed production Compose, migration, backup, rollback and Nginx procedures are
+in [docs/OPERATIONS.md](docs/OPERATIONS.md). Deployment assets are prepared; AWS
+OIDC, Docker Host ECR pull access and production activation remain approval gates.
+
 ## DevOps handoff
 
 The DevOps engineer owns PostgreSQL provisioning/users, secret injection, database

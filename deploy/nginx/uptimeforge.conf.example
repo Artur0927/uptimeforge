@@ -1,0 +1,36 @@
+# Install only after DNS, certificates and private connectivity are verified.
+# This file belongs inside nginx's http context (for example conf.d/).
+log_format uptimeforge '$remote_addr [$time_local] "$request_method $uri" '
+                      '$status $body_bytes_sent $request_time';
+
+server {
+    listen 80;
+    server_name REPLACE_WITH_DOMAIN;
+    location /.well-known/acme-challenge/ {
+        root /var/www/acme;
+    }
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name REPLACE_WITH_DOMAIN;
+    ssl_certificate /etc/letsencrypt/live/REPLACE_WITH_DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/REPLACE_WITH_DOMAIN/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    server_tokens off;
+    client_max_body_size 1m;
+    access_log /var/log/nginx/uptimeforge-access.log uptimeforge;
+
+    location / {
+        proxy_pass http://10.20.2.23:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 75s;
+    }
+}
