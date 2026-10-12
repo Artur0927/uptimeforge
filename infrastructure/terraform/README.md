@@ -18,6 +18,8 @@ The default configuration deploys **ECR only**:
 
 ```hcl
 enable_cicd_iam = false
+enable_docker_host_iam = false
+associate_docker_host_profile = false
 ```
 
 `module.ecr` is unconditional. `module.iam` has `count = 0` when disabled, so none
@@ -25,10 +27,13 @@ of its resources or OIDC data sources are evaluated. ECR has no dependency on
 CI roles, Docker Host roles, EC2 profile changes or AWS Organizations operations.
 IAM outputs return `null` and are omitted from state outputs while disabled.
 
-Setting `enable_cicd_iam=true` later instantiates `module.iam[0]`; it does not
-change ECR addresses or associate the prepared Docker Host profile with EC2.
-The Docker Host continues to use the original shared SSM profile in both stages.
-Attaching a new profile requires a separate reviewed compute change.
+Setting `enable_cicd_iam=true` later instantiates only GitHub publisher IAM at
+`module.iam[0]`; it does not create Docker Host IAM or change existing profiles.
+Independent `enable_docker_host_iam=true` creates the dedicated EC2 role/profile
+at `module.docker_host_iam[0]`, without any OIDC inspection. Keep
+`associate_docker_host_profile=false` during role creation. Changing this second
+flag requires separate approval after role/SSM verification. See the
+[Docker Host migration runbook](../../docs/DOCKER-HOST-IAM.md).
 
 ## Layout
 
@@ -42,12 +47,13 @@ infrastructure/terraform/
 ├── outputs.tf
 ├── terraform.tfvars.example
 ├── network.tf                 # existing VPC, routes and security groups
-├── compute.tf                 # existing EC2 and NAT route, unchanged
+├── compute.tf                 # same addresses; explicit host-only profile opt-in
 ├── iam.tf                     # original shared SSM role/profile, unchanged
 ├── bootstrap/
 ├── modules/
 │   ├── ecr/{main,variables,outputs,versions}.tf
-│   └── iam/{main,variables,outputs,versions}.tf
+│   ├── iam/{main,variables,outputs,versions}.tf
+│   └── docker-host-iam/{main,variables,outputs,versions}.tf
 ├── tests/
 │   ├── modules.tftest.hcl      # ECR and IAM security contracts
 │   └── stages.tftest.hcl       # root composition and preserved EC2 profile
@@ -113,9 +119,9 @@ by this task. ECR can be reviewed without resolving the OIDC SCP restriction.
 
 ## Phase 2: prepare CI/CD IAM
 
-The IAM module implementation is retained. It prepares a GitHub ECR publisher
-role, repository-scoped push policy, dedicated Docker Host role/profile, SSM
-policy attachment and repository-scoped ECR pull policy. Neither the Nginx nor
+The IAM module prepares only a GitHub ECR publisher role and repository-scoped
+push policy. Docker Host role/profile, SSM attachment and pull policy live in the
+independent docker-host-iam module. Neither the Nginx nor
 NAT role receives ECR permissions. Only GetAuthorizationToken uses resource `*`;
 image operations are scoped to the application repository.
 
@@ -160,7 +166,7 @@ image operations are scoped to the application repository.
    keep the creation flag true; changing it would propose provider destruction,
    which prevent_destroy blocks.
 5. Run fmt, init, validate, test and a fresh plan. After ECR is deployed, expect
-   six IAM creates for reuse, or seven including a new provider; adopting one
+   two IAM creates for reuse, or three including a new provider; adopting one
    accounts for it through import. Require zero EC2 changes, replacements or
    destructions. Review authorization to create roles/policies and attach SSM.
    IAM/ECR creation permissions are not proven merely by a successful plan.
@@ -172,14 +178,17 @@ resources; keep it enabled unless a separate teardown is explicitly reviewed.
 
 ## Later Docker Host and SSM deployment integration
 
-After the IAM stage is approved and deployed, separately change only the Docker
-Host's `iam_instance_profile` to
-`module.iam[0].docker_host_instance_profile_name`. Review a plan for one in-place
-EC2 profile association update and zero replacements. The prepared profile
-already depends on its SSM attachment and ECR pull policy. The Terraform role
-will need PassRole for this role and EC2 association permissions. Allow for IAM
-propagation and verify a fresh SSM session and host identity after migration.
-The shared SSM role/profile remains for Nginx and NAT.
+Host IAM creation is independent of the GitHub stage. Keep enable_cicd_iam=false;
+use enable_docker_host_iam=true only after reviewing four IAM creates and zero
+changes to existing resources. A second approved plan sets
+associate_docker_host_profile=true and must update only
+aws_instance.docker_host.iam_instance_profile in place. NAT, Nginx, shared SSM,
+networking and ECR retain their existing addresses/configuration. No moved blocks
+or imports are required: the original optional IAM module has no deployed state.
+If another state has deployed its former host resources, stop for separate state
+ownership review instead of creating duplicate role names. Rollback selects the
+original shared SSM profile while keeping the dedicated IAM module enabled.
+Permissions, SSM checks and rollback commands are in the migration runbook.
 
 A subsequent workflow can test, build `app/` once, authenticate with OIDC, and
 publish `sha-${GITHUB_SHA}`. Handle retries of already-published immutable tags.

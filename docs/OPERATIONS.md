@@ -143,14 +143,14 @@ must retain AmazonSSMManagedInstanceCore, trust only ec2.amazonaws.com, and allo
   ecr:GetDownloadUrlForLayer only on
   arn:aws:ecr:eu-north-1:152680102458:repository/uptimeforge-api.
 
-The policy in modules/iam has these scopes, but the root currently gates the
-entire module behind enable_cicd_iam, including OIDC lookup. Consequently this
-repository does **not yet provide an independently deployable host-only IAM
-stage**. Keep enable_cicd_iam=false. A separate reviewed change must isolate the
-Docker Host role/profile from OIDC and approve its association to the existing
-Docker Host only, retaining SSM access. Do not add ECR permissions to the shared
-SSM role: NAT and Nginx must not receive them. No profile association or IAM change
-is performed by these instructions. The SCP remains intact.
+The independent modules/docker-host-iam module has these scopes and never looks
+up GitHub OIDC. enable_docker_host_iam creates its four IAM resources only;
+associate_docker_host_profile is a separate explicitly approved migration flag.
+Both default to false. Keep enable_cicd_iam=false. Follow the
+[Docker Host IAM migration runbook](DOCKER-HOST-IAM.md), create/review the role
+first, then approve association only to the existing Docker Host while retaining
+SSM. Do not add ECR permissions to the shared SSM role: NAT and Nginx must not
+receive them. The SCP remains intact.
 
 Use an approved temporary human session for SSM access as well. On the host verify IMDSv2/instance-role credentials, no local
 AWS key files or credential environment overrides, Docker Engine/Compose v2,

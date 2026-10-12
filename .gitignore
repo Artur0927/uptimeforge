@@ -32,3 +32,14 @@ crash.*.log
 htmlcov/
 *.db
 *.sqlite*
+
+# Temporary working notes (never engineering runbooks or source patches).
+.github/OIDC-DIAGNOSTICS.md
+docs/VALIDATION.md
+*HANDOFF*.md
+*handoff*.md
+/infrastructure/terraform/DEVOPS-*-AUDIT.md
+/infrastructure/terraform/DEVOPS-*.diff
+/infrastructure/terraform/DEVOPS-*.patch
+/docs/*-REVIEW-NOTES.md
+/docs/*-SESSION-SUMMARY.md

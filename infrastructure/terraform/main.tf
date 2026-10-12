@@ -27,3 +27,13 @@ module "iam" {
   create_github_oidc_provider = var.create_github_oidc_provider
   tags                        = local.tags
 }
+
+# Host-only IAM never evaluates GitHub OIDC data or resources.
+module "docker_host_iam" {
+  source = "./modules/docker-host-iam"
+  count  = var.enable_docker_host_iam ? 1 : 0
+
+  name_prefix    = local.name_prefix
+  repository_arn = module.ecr.repository_arn
+  tags           = local.tags
+}

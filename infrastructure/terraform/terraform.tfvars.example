@@ -10,12 +10,17 @@ docker_instance_type = "t3.small"
 
 ecr_release_image_count = 20
 
-# Phase 1: deploy ECR only. The entire IAM module, including OIDC lookup, is skipped.
+# Default: existing infrastructure only; GitHub IAM/OIDC remain disabled.
 enable_cicd_iam = false
 
-# Phase 2 only: enable IAM after organization-approved OIDC access is available.
+# GitHub publisher stage only after organization-approved OIDC inspection.
 github_oidc_subject    = "repo:Artur0927@99685228/uptimeforge@1412546510:ref:refs/heads/main"
 
 # Safe default: reuse an existing, externally managed account-wide provider.
 # If absent, set true. If present and adopting it, set true and import first.
 create_github_oidc_provider = false
+
+# Separately approved host-only stage: true creates four IAM resources only.
+enable_docker_host_iam = false
+# Separately approved migration after role creation/SSM checks. Default preserves all profiles.
+associate_docker_host_profile = false
