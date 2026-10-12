@@ -1,0 +1,21 @@
+# Copy to terraform.tfvars (ignored by Git). No secrets belong here.
+aws_region  = "eu-north-1"
+aws_profile = "uptimeforge"
+project     = "uptimeforge"
+environment = "dev"
+
+nat_instance_type    = "t3.micro"
+nginx_instance_type  = "t3.micro"
+docker_instance_type = "t3.small"
+
+ecr_release_image_count = 20
+
+# Phase 1: deploy ECR only. The entire IAM module, including OIDC lookup, is skipped.
+enable_cicd_iam = false
+
+# Phase 2 only: enable IAM after organization-approved OIDC access is available.
+github_oidc_subject    = "repo:Artur0927@99685228/uptimeforge@1412546510:ref:refs/heads/main"
+
+# Safe default: reuse an existing, externally managed account-wide provider.
+# If absent, set true. If present and adopting it, set true and import first.
+create_github_oidc_provider = false
