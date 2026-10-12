@@ -1,0 +1,99 @@
+name: uptimeforge
+
+x-application: &application
+  image: ${APP_IMAGE:?Set the immutable ECR image with a sha-<40-character-commit> tag}
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=32m,mode=1777
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  environment: &application-environment
+    DATABASE_URL: ${DATABASE_URL:?Set the PostgreSQL URL using hostname db}
+    AUTH_USERNAME: ${AUTH_USERNAME:?Set the administrator username}
+    AUTH_PASSWORD: ${AUTH_PASSWORD:?Set a strong administrator password}
+    CHECK_TIMEOUT_SECONDS: ${CHECK_TIMEOUT_SECONDS:-10}
+    MAX_RESPONSE_BYTES: ${MAX_RESPONSE_BYTES:-1048576}
+    WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-5}
+    WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+  depends_on:
+    db:
+      condition: service_healthy
+  stop_grace_period: 75s
+  logging: &logging
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set the approved database name}
+      POSTGRES_USER: ${POSTGRES_USER:?Set the approved database user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set the approved database password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No published database port. Retain PostgreSQL's required filesystem access.
+    shm_size: 128m
+    mem_limit: 512m
+    cpus: 0.50
+    stop_grace_period: 60s
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    logging: *logging
+
+  api:
+    <<: *application
+    ports:
+      - ${DOCKER_HOST_PRIVATE_IP:?Set the Docker Host private IP}:8000:8000
+    mem_limit: 384m
+    cpus: 0.50
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; r = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3); assert r.status == 200"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  worker:
+    <<: *application
+    command: [python, -m, uptimeforge.worker]
+    mem_limit: 256m
+    cpus: 0.50
+    healthcheck:
+      # Confirms DB access, not scheduling progress; review worker logs/check history.
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, psycopg; from sqlalchemy.engine import make_url; u = make_url(os.environ['DATABASE_URL']); c = psycopg.connect(host=u.host, port=u.port or 5432, dbname=u.database, user=u.username, password=u.password, connect_timeout=3); c.execute('SELECT 1'); c.close()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  migrate:
+    <<: *application
+    profiles: [tools]
+    command: [alembic, upgrade, head]
+    restart: "no"
+    mem_limit: 256m
+    cpus: 0.50
+
+volumes:
+  pgdata:
+    # Never silently create a new empty database volume during migration/update.
+    external: true
+    name: ${POSTGRES_VOLUME_NAME:?Set the verified existing or explicitly provisioned PostgreSQL volume name}
