@@ -7,6 +7,8 @@ on:
       - main
 
   pull_request:
+    # Retargeting a PR changes its integration base and must rerun validation.
+    types: [opened, synchronize, reopened, edited, ready_for_review]
     branches:
       - main
 
