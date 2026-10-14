@@ -94,6 +94,11 @@ The API needs a long random AUTH_PASSWORD; example REPLACE_ values are rejected.
 Keep backups and release records outside the 20 GiB host disk where practical.
 No secret file is committed or bundled into the application image.
 
+Set NGINX_PRIVATE_IP to the actual private address of the Nginx EC2 host.
+Only API trusts forwarded headers from that peer, so HTTPS browser writes pass
+the existing same-origin checks. Never use wildcard proxy trust. The Nginx
+template preserves the original Host header, including any external HTTPS port.
+
 ## Separately approved manual image publication
 
 Use an organization-approved human session with short-lived credentials, such as
@@ -306,17 +311,18 @@ describing this single-tenant MVP as a multi-tenant production SaaS.
 
 The deployment assets add no AWS resources, but do not establish zero cost or
 Free Plan eligibility for existing EC2, EBS, ECR, public IPv4 and data transfer.
-The account is described as an Organizations member with an SCP. AWS documents
-that joining Organizations automatically upgrades a Free account plan to Paid:
-[Choosing a plan](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html).
-This conflicts with the requirement to remain on Free Plan; actual billing status
-has not been verified here. The account/billing owner must inspect Billing and
-Cost Management → Free Tier and account plan status, remaining credits/expiry,
-and organization consolidated billing before release. Distinguish legacy Free
-Tier or credits on a Paid plan from the Free account plan. Do not upgrade plans,
-leave the organization, change billing or provision services as a workaround.
-If Free Plan is a strict requirement and the account is Paid, release is blocked
-until the owner resolves that requirement explicitly.
+Verify the actual account plan and remaining credits before each approved release:
+
+```bash
+aws freetier get-account-plan-state --profile APPROVED_TEMP_PROFILE --region us-east-1
+```
+
+Require FREE/ACTIVE if remaining on Free Plan is mandatory, and review remaining
+credits, expiry and expected consumption with the billing owner. An empty Free
+Tier usage response does not mean zero cost. Do not infer this account's plan
+solely from Organizations membership; inspect the API and Billing console.
+See [Choosing a plan](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html).
+No plan upgrade, organization membership or billing change is authorized here.
 
 ## Troubleshooting
 

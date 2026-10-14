@@ -113,8 +113,9 @@ Plan: 2 to add, 0 to change, 0 to destroy.
 ```
 
 Do not apply a plan with unexpected EC2, AMI, profile, network or SSM changes.
-The current AMI uses a moving SSM latest parameter; inspect future plans for
-unrelated AMI replacement. No apply, destroy, import or AWS write is authorized
+Hosts use the verified deployed AMI pinned in compute.tf. The SSM latest value
+is an upgrade candidate only; AMI changes need a separate reviewed replacement
+plan. No apply, destroy, import or AWS write is authorized
 by this task. ECR can be reviewed without resolving the OIDC SCP restriction.
 
 ## Phase 2: prepare CI/CD IAM

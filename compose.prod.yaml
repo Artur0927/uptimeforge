@@ -52,6 +52,10 @@ services:
 
   api:
     <<: *application
+    environment:
+      <<: *application-environment
+      # Trust proxy headers only from the private Nginx peer, never from '*'.
+      FORWARDED_ALLOW_IPS: ${NGINX_PRIVATE_IP:?Set the trusted private Nginx IP}
     ports:
       - ${DOCKER_HOST_PRIVATE_IP:?Set the Docker Host private IP}:8000:8000
     mem_limit: 384m
