@@ -89,6 +89,7 @@ jobs:
         env:
           APP_IMAGE: 152680102458.dkr.ecr.eu-north-1.amazonaws.com/uptimeforge-api:sha-0000000000000000000000000000000000000000
           DOCKER_HOST_PRIVATE_IP: 10.20.2.23
+          NGINX_PRIVATE_IP: 10.20.1.236
           POSTGRES_VOLUME_NAME: validation-only
           POSTGRES_DB: uptimeforge_test
           POSTGRES_USER: uptimeforge

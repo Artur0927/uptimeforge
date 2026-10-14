@@ -2,6 +2,7 @@ import httpx
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from uptimeforge import api, monitoring
 from uptimeforge.db import get_session
@@ -122,6 +123,22 @@ async def test_authentication_health_and_csrf(client):
     assert response.status_code == 403
     response = await client.post("/api/monitors", headers={"X-UptimeForge-Request": ""}, json={})
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize("peer,expected", [("10.20.1.236", 201), ("10.20.2.99", 403)])
+async def test_https_browser_write_trusts_only_nginx_peer(client, peer, expected):
+    proxy_app = ProxyHeadersMiddleware(app, trusted_hosts=["10.20.1.236"])
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=proxy_app, client=(peer, 1234)),
+        base_url="http://demo.example:8443",
+        auth=client.auth,
+        headers={
+            "X-UptimeForge-Request": "1",
+            "X-Forwarded-Proto": "https",
+            "Origin": "https://demo.example:8443",
+        },
+    ) as proxied:
+        assert (await create(proxied)).status_code == expected
 
 
 async def test_openapi_includes_auth_and_write_header(client):

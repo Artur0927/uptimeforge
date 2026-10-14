@@ -1,5 +1,6 @@
 """Check the resolved production Compose contract without printing credentials."""
 
+import ipaddress
 import json
 import re
 import sys
@@ -18,6 +19,15 @@ if db.get("ports"):
 ports = api["ports"]
 if len(ports) != 1 or ports[0].get("host_ip") != "10.20.2.23":
     raise SystemExit("FAIL: API must bind only to the expected private Docker Host address")
+try:
+    proxy_ip = ipaddress.ip_address(api["environment"]["FORWARDED_ALLOW_IPS"])
+except (KeyError, ValueError):
+    raise SystemExit("FAIL: API proxy trust requires one explicit private Nginx IP") from None
+if (
+    proxy_ip.version != 4 or not proxy_ip.is_private or proxy_ip.is_loopback
+    or proxy_ip.is_link_local or proxy_ip.is_unspecified or proxy_ip.is_multicast or proxy_ip.is_reserved
+):
+    raise SystemExit("FAIL: API proxy trust requires one explicit private Nginx IP")
 if not config["volumes"]["pgdata"].get("external"):
     raise SystemExit("FAIL: PostgreSQL requires an explicitly selected existing volume")
 for service in (api, worker):
