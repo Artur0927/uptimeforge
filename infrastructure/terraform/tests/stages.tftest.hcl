@@ -29,6 +29,14 @@ run "ecr_only_by_default" {
   command = plan
 
   assert {
+    condition = alltrue([
+      for instance in [aws_instance.nat, aws_instance.nginx, aws_instance.docker_host] :
+      instance.ami == "ami-01e082ac2f79f3918"
+    ])
+    error_message = "Unrelated changes must preserve the deployed AMI, not adopt the moving latest lookup."
+  }
+
+  assert {
     condition     = length(module.iam) == 0 && length(module.docker_host_iam) == 0
     error_message = "Default composition must instantiate no IAM module or OIDC lookups."
   }

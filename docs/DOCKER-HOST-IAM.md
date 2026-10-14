@@ -89,10 +89,10 @@ SCP p-po1vubeu or request OIDC inspection permission for host-only IAM.
 
 IAM preparation adds no compute, storage, endpoints or paid services. Existing
 EC2, EBS, ECR, IPv4 and transfer usage can still consume credits/incur costs.
-The billing owner must confirm actual plan, credits and expiry. AWS documents
-that Organizations enrollment upgrades a Free plan to Paid; do not claim strict
-Free Plan compatibility for this organization-managed account without verifying
-that discrepancy. No billing or organization change is authorized.
+The billing owner must confirm actual plan, credits and expiry using
+freetier:GetAccountPlanState and the Billing console. Do not infer Free Plan
+eligibility solely from Organizations membership; require the actual FREE/ACTIVE
+status when that is mandatory. No billing or organization change is authorized.
 
 References: [EC2 role attachment permissions](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/permission-to-pass-iam-roles.html),
 [ECR action scopes](https://docs.aws.amazon.com/service-authorization/latest/reference/list_ecr.html),
@@ -114,11 +114,11 @@ The contracts use mocks/synthetic credentials and plan only; they never apply.
 They cover pull scopes/trust, non-UptimeForge repository rejection, OIDC isolation,
 unchanged profiles, explicit host migration and rejection of migration without IAM.
 
-A future live plan requires read-only access approval and current backend/state
-ownership checks. This task does not run it. Store plan files privately outside
+A live plan requires read-only access approval and current backend/state
+ownership checks. Store plan files privately outside
 Git because they may contain sensitive values. Review the full plan, not only a
-resource count. The existing moving SSM latest AMI can introduce replacements;
-stop on any such drift and resolve it in a separate reviewed change. Do not use
+resource count. Existing hosts use the deployed AMI pinned in compute.tf; updates
+need a separately reviewed replacement plan. Stop on unrelated drift. Do not use
 -target, ignore_changes or refresh=false to hide live drift in an approval plan.
 
 Example future preparation plan (read-only, with approved temporary credentials):

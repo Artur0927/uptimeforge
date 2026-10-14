@@ -1,11 +1,17 @@
-# Official AL2023 x86_64 AMI; evaluated in the AWS provider region.
+# Latest is an upgrade candidate only; AMI upgrades need separate approval.
 data "aws_ssm_parameter" "al2023" {
   name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 }
 
+locals {
+  # Confirmed against AWS and local state for all three existing hosts.
+  # Retain the SSM-derived sensitivity marker to avoid metadata-only EC2 updates.
+  deployed_ami_id = sensitive("ami-01e082ac2f79f3918")
+}
+
 # Public NAT instance; initial user_data installs persistent Linux forwarding/NAT.
 resource "aws_instance" "nat" {
-  ami                         = data.aws_ssm_parameter.al2023.value
+  ami                         = local.deployed_ami_id
   instance_type               = var.nat_instance_type
   subnet_id                   = aws_subnet.public_a.id
   associate_public_ip_address = true
@@ -53,7 +59,7 @@ resource "aws_route" "private_default" {
 # Public Nginx reverse proxy host. Bootstrap serves a harmless test page on HTTP/80.
 # HTTPS/443 is deliberately NOT configured until a domain and TLS certificate exist.
 resource "aws_instance" "nginx" {
-  ami                         = data.aws_ssm_parameter.al2023.value
+  ami                         = local.deployed_ami_id
   instance_type               = var.nginx_instance_type
   subnet_id                   = aws_subnet.public_a.id
   associate_public_ip_address = true
@@ -89,7 +95,7 @@ resource "aws_instance" "nginx" {
 # Private Docker host; no public IPv4. Next hands-on step: install Docker via SSM,
 # then deploy FastAPI + Worker + Postgres with Compose (do NOT expose port 5432).
 resource "aws_instance" "docker_host" {
-  ami                         = data.aws_ssm_parameter.al2023.value
+  ami                         = local.deployed_ami_id
   instance_type               = var.docker_instance_type
   subnet_id                   = aws_subnet.private_a.id
   associate_public_ip_address = false
